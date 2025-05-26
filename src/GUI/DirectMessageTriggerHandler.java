@@ -1,5 +1,5 @@
 package GUI;
 
 public interface DirectMessageTriggerHandler {
-    void triggerDirectMessagePanel(String recipient);
+    void triggerDirectMessagePanel(String recipient) throws InterruptedException;
 }

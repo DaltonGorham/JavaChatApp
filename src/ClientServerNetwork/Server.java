@@ -58,6 +58,7 @@ public class Server {
     }
 
     public void sendDirectMessage(String senderUsername, String recipientUsername, String message, Socket senderSocket) {
+
         // send message to yourself, special scenario: only send it once
         if (senderUsername.equals(recipientUsername)) {
             try {
@@ -89,6 +90,7 @@ public class Server {
             System.out.println("Error sending direct message to sender: " + e.getMessage());
         }
 
+
     }
 
 
@@ -113,6 +115,15 @@ public class Server {
             System.out.println("Error sending message to client: " + e.getMessage());
         }
     }
+
+    public void loadMessagesFromDatabase(DataOutputStream out) {
+        List<String> pastMessages = DatabaseHelper.loadAllMessages();
+        for (String message : pastMessages) {
+            sendMessagesToClients(out, message);
+        }
+    }
+
+
 
 
     /**
@@ -143,6 +154,7 @@ public class Server {
                 username = inputStream.readUTF();
                 outputStream.writeUTF("Welcome " + username + "!");
                 usernameMap.put(clientSocket, username);
+                loadMessagesFromDatabase(outputStream); // load messages from database
                 broadcastUserList(); // notify current users connected on connection
                 System.out.println("Client (" + clientSocket + ") entered username: " + username);
                 String message;
@@ -159,10 +171,25 @@ public class Server {
                             String recipientUsername = partsOfMessage[1];
                             String privateMessageContent = partsOfMessage[2];
                             sendDirectMessage(senderUsername, recipientUsername, privateMessageContent, clientSocket);
+                            DatabaseHelper.saveDirectMessage(senderUsername, recipientUsername, privateMessageContent);
+                        }
+                    }
+                    else if (message.startsWith("LOAD_DIRECT_HISTORY=")) {
+                        String[] parts = message.substring("LOAD_DIRECT_HISTORY=".length()).split(",", 2);
+                        System.out.println(message);
+                        if (parts.length == 2) {
+                            String senderUsername = parts[0];
+                            String recipientUsername = parts[1];
+
+                            List<String> history = DatabaseHelper.getDirectMessages(senderUsername, recipientUsername);
+                            for (String pastMessage : history) {
+                                sendDirectMessage(senderUsername, recipientUsername, pastMessage, clientSocket);
+                            }
                         }
                     }
                     else {
                         broadcastMessage(username + ": " + message);
+                        DatabaseHelper.saveMessage(username, message);
                     }
                 }
             } catch (IOException e) {

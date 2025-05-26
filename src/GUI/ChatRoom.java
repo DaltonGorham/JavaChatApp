@@ -1,5 +1,7 @@
 package GUI;
 
+import ClientServerNetwork.Client;
+
 import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
@@ -62,10 +64,18 @@ public class ChatRoom extends JFrame implements ChatEventHandler, UserUpdateHand
     // When a user presses send, it formats the message to include:
     // username, typed message, timestamp, and spacing/wrapping
     @Override
-    public void onSendMessage(String username, String message, boolean isDirect) {
+    public void onSendMessage(String username, String message, boolean isDirect) throws InterruptedException {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, hh:mm a");
         String timestamp = LocalDateTime.now().format(formatter);
         String finalOutput;
+        String regex = "\\([A-Za-z]+ \\d{1,2}, \\d{2}:\\d{2} [AP]M\\)$";
+        String trimmedMessage = message.trim();
+
+        // Use regex to see if the message ALREADY ends with a timestamp
+        if (trimmedMessage.matches("(?s).*" + regex)) {
+            timestamp = "";
+        }
+
 
         if (message.startsWith("USER_LIST_UPDATE=")) {
             String users = message.substring("USER_LIST_UPDATE=".length());
@@ -91,21 +101,42 @@ public class ChatRoom extends JFrame implements ChatEventHandler, UserUpdateHand
 
                 DirectMessagePanel targetPanel = directMessagePanels.get(conversationPartner);
                 if (targetPanel != null) {
-                    targetPanel.appendDirectMessage(senderName + ": " + messageContent + "\n(" + timestamp + ")\n");
+                    if (timestamp.isEmpty()) { // check if loaded messages from database already have timestamp
+                        targetPanel.appendDirectMessage(messageContent + "\n");
+                    }
+                    else {
+                        targetPanel.appendDirectMessage(senderName + ": " + messageContent + "\n(" + timestamp + ")\n");
+                    }
                 }
                 return;
             }
         }
 
-        // prevent duplicate username in output
+        // prevent duplicate username in output and check if loaded messages from database already have timestamp
         if (message.contains(":")) {
-            finalOutput = message + "\n(" + timestamp + ")\n";
+            if (timestamp.isEmpty()) {
+                finalOutput = message + "\n";
+            }
+            else {
+                finalOutput = message + "\n(" + timestamp + ")\n";
+            }
+
         }
         else if (chatPanel.getUsername().equals("") || message.startsWith("Welcome")) {
-            finalOutput = "Server: " + message + "\n(" + timestamp + ")\n";
+            if (timestamp.isEmpty()) {
+                finalOutput = "Server: " + message + "\n";
+            }
+            else {
+                finalOutput = "Server: " + message + "\n(" + timestamp + ")\n";
+            }
         }
         else {
-            finalOutput =  message + "\n(" + timestamp + ")\n";
+            if (timestamp.isEmpty()) {
+                finalOutput = message + "\n";
+            }
+            else {
+                finalOutput =  message + "\n(" + timestamp + ")\n";
+            }
         }
 
         chatPanel.appendMessage(finalOutput);
@@ -119,7 +150,7 @@ public class ChatRoom extends JFrame implements ChatEventHandler, UserUpdateHand
     }
 
     @Override
-    public void triggerDirectMessagePanel(String recipient) {
+    public void triggerDirectMessagePanel(String recipient) throws InterruptedException {
        if (!directMessagePanels.containsKey(recipient)) {
            DirectMessagePanel newDmPanel = new DirectMessagePanel();
            newDmPanel.setEventHandler(this);
@@ -137,6 +168,10 @@ public class ChatRoom extends JFrame implements ChatEventHandler, UserUpdateHand
            directMessagePanels.put(recipient, newDmPanel);
            directMessageWindows.put(recipient, newDmWindow);
        }
+
+       String currentUsername = chatPanel.getUsername();
+       String loadHistoryCommand = "LOAD_DIRECT_HISTORY=" + currentUsername + "," + recipient;
+       Client.getInstance().sendMessageToServer(loadHistoryCommand);
 
         directMessageWindows.get(recipient).setVisible(true);
     }

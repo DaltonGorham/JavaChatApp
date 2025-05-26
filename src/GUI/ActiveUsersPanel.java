@@ -29,7 +29,11 @@ public class ActiveUsersPanel extends JPanel {
            if (!e.getValueIsAdjusting() && dmHandler != null) {
                String selectedUser = userList.getSelectedValue();
                if (selectedUser != null) {
-                   dmHandler.triggerDirectMessagePanel(selectedUser);
+                   try {
+                       dmHandler.triggerDirectMessagePanel(selectedUser);
+                   } catch (InterruptedException ex) {
+                       throw new RuntimeException(ex);
+                   }
                }
            }
         });
