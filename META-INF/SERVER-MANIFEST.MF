@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: ClientServerNetwork.Server
+Class-Path: lib/postgresql.jar
+

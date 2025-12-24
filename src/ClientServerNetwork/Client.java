@@ -7,8 +7,8 @@ import java.net.*;
 
 public class Client {
     // String and Integer constants
-    public static final String SERVER_IP = "3.227.177.101";
-    public static final int SERVER_PORT = 5000;
+    public static final String SERVER_IP = "localhost";
+    public static final int SERVER_PORT = 3000;
     private static Client instance = null;
 
 

@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     // Integer constants
-    public static final int SERVER_PORT = 5000;
+    public static final int SERVER_PORT = 3000;
 
 
     // Initialize socket and input stream
